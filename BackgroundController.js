@@ -1,20 +1,27 @@
-//BackgroundController.js
-import * as ecs from '@8thwall/ecs'  // This is how you access the ecs library
+// Santa's Sleigh Mate - BackgroundController.js
+import * as ecs from '@8thwall/ecs'  // Access the ecs library
 
 // Background Controller Component
-// Handles control of the background scenery
+// Handles the background scenery for Santa's Sleigh Mate
 ecs.registerComponent({
     name: 'backgroundController',
-    stateMachine: ({world, eid}) => {
-        const fixScale = () => world.setScale(eid, 3, 5.25, 3)
+    stateMachine: ({ world, eid }) => {
+        // Adjust the scale of the background depending on the device type
+        const adjustScaleForDevice = () => {
+            const isDesktop = world.platform === 'desktop'
+            const scale = isDesktop ? { x: 5, y: 6, z: 5 } : { x: 3, y: 6, z: 3 }  // Adjust scale for wider screens on desktop
+            world.setScale(eid, scale.x, scale.y, scale.z)
+        }
+
         ecs.defineState('start').initial()
             .onEnter(() => {
-                // If the platform is set to be desktop, stretch this scale to cover the wider screen
-                world.events.addListener(world.events.globalId, 'isDesktop', fixScale)
+                // Adjust scale when the game starts and listen for device-specific adjustments
+                adjustScaleForDevice()
+                world.events.addListener(world.events.globalId, 'deviceChange', adjustScaleForDevice)
             })
             .onExit(() => {
-                // remove event Listener
-                world.events.removeListener(world.events.globalId, 'isDesktop', fixScale)
+                // Remove the device change listener when exiting the state
+                world.events.removeListener(world.events.globalId, 'deviceChange', adjustScaleForDevice)
             })
     },
 })

@@ -1,11 +1,24 @@
-//AudioController.js
-// Helper functions for controlling audio components
-import * as ecs from '@8thwall/ecs'  // This is how you access the ecs library
+// Santa's Sleigh Mate - AudioController.js
+// Helper functions for controlling audio components in the Santa's Sleigh Mate game
+import * as ecs from '@8thwall/ecs'  // Access the ecs library
 
 // Given an entity id, play its audio component
-const PlayAudio = (world, componentEID) => {
-    if (ecs.Audio.has(world, componentEID)) {  // If the supplied entity has an Audio component...
+const PlayAudio = (world, componentEID, audioType) => {
+    if (ecs.Audio.has(world, componentEID)) {  // If the entity has an Audio component...
         const audio = ecs.Audio.cursor(world, componentEID)  // Get a reference to that Audio component
+        switch(audioType) {
+            case 'levelUp':
+                audio.url = 'assets/level-up.mp3';  // Play level-up sound
+                break;
+            case 'gameOver':
+                audio.url = 'assets/game-over.mp3';  // Play game-over sound
+                break;
+            case 'match':
+                audio.url = 'assets/match.mp3';  // Play match success sound
+                break;
+            default:
+                audio.url = 'assets/default.mp3';  // Default sound
+        }
         audio.paused = false  // And play the assigned audio source
     }
 }

@@ -1,7 +1,9 @@
-//GameManager.js
+// Santa's Sleigh Mate - GameManager.js
 import * as ecs from '@8thwall/ecs'
 import { PlayAudio } from './AudioController'
 
+// Game Manager Component
+// Manages game state, scoring, and level progression
 ecs.registerComponent({
     name: 'gameManager',
     data: {
@@ -23,49 +25,44 @@ ecs.registerComponent({
         }
 
         ecs.defineState('startGame').initial()  // Initial game state
-            .onEvent('interact', 'inGame', { target: world.events.globalId })
-            .onEnter(() => {  // When entering start state
+            .onEvent('startGame', 'inGame', { target: world.events.globalId })
+            .onEnter(() => {  // When entering the start state
                 world.events.addListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')  // Start game interaction
+                    world.events.dispatch(eid, 'startGame')  // Trigger game start
                 })
             })
             .onExit(() => {  // When exiting start state
                 world.events.removeListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')
+                    world.events.dispatch(eid, 'startGame')
                 })
-                world.events.dispatch(eid, 'startGame')
-                world.events.dispatch(eid, 'startUI')
             })
 
         ecs.defineState('inGame')  // Main gameplay state
+            .onEvent('dropItem', ({ itemType, houseColor }) => {  // Event to handle dropping items
+                handleItemDrop(itemType, houseColor)
+            })
             .onEvent('gameOver', 'afterGame', { target: world.events.globalId })
             .onEnter(() => {  // On entering in-game state
+                // Allow interaction for dropping items
                 world.events.addListener(world.events.globalId, 'dropItem', (data) => {
                     handleItemDrop(data.itemType, data.houseColor)
                 })
-                world.events.addListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')
-                })
             })
-            .onExit(() => {  // Clean up on exit
+            .onExit(() => {  // Clean up when leaving in-game state
                 world.events.removeListener(world.events.globalId, 'dropItem', handleItemDrop)
-                world.events.removeListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')
-                })
             })
 
         ecs.defineState('afterGame')  // End-game state
-            .onEvent('interact', 'startGame', { target: world.events.globalId })
+            .onEvent('restart', 'startGame', { target: world.events.globalId })
             .onEnter(() => {  // On entering end-game
                 PlayAudio(world, eid, 'gameOver')  // Play Game Over Audio
                 world.events.addListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')
+                    world.events.dispatch(eid, 'restart')  // Restart game on touch
                 })
             })
-            .onExit(() => {  // Reset and restart
-                world.events.dispatch(eid, 'restart')
+            .onExit(() => {  // Reset state
                 world.events.removeListener(eid, ecs.input.SCREEN_TOUCH_START, () => {
-                    world.events.dispatch(eid, 'interact')
+                    world.events.dispatch(eid, 'restart')
                 })
             })
 
@@ -92,7 +89,7 @@ ecs.registerComponent({
     },
     tick: (world, component) => {  // Lifecycle Tick - Code to run every game frame that is rendered
         if (world.input.getKeyDown('Space')) {  // Start interaction on space key (for testing or debugging)
-            world.events.dispatch(component.eid, 'interact')
+            world.events.dispatch(component.eid, 'startGame')
         }
     },
 })

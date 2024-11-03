@@ -1,85 +1,84 @@
-// ObstacleController.js
-import * as ecs from '@8thwall/ecs'  // This is how you access the ecs library
+// Santa's Sleigh Mate - ObstacleController.js
+import * as ecs from '@8thwall/ecs'  // Access the ecs library
 
 // Obstacle Controller Component
-// Handles control of randomizing and moving obstacles toward the player
+// Handles control of randomizing and moving obstacles toward Santa's sleigh
 ecs.registerComponent({
     name: 'obstacleController',
     schema: {
-        obstacleMoveSpeed: ecs.f32,  // Obstacle Movement Speed as a 32-bit floating point number
-        leftBound: ecs.f32,  // The initial Left Bound x value as a 32-bit floating point number
-        maxHeight: ecs.f32,  // The Max Height the obstacles can spawn as a 32-bit floating point number
-        minHeight: ecs.f32,  // The Min Height the obstacles can spwan as a 32-bit floating point number
+        obstacleMoveSpeed: ecs.f32,  // Obstacle Movement Speed as a 32-bit float
+        leftBound: ecs.f32,  // Left boundary where obstacles will reset their position
+        maxHeight: ecs.f32,  // The maximum height obstacles can spawn as a 32-bit float
+        minHeight: ecs.f32,  // The minimum height obstacles can spawn as a 32-bit float
     },
     schemaDefaults: {
-        obstacleMoveSpeed: 9,
-        leftBound: -32,
-        maxHeight: 5,
-        minHeight: -6,
+        obstacleMoveSpeed: 8,  // Default movement speed for obstacles
+        leftBound: -30,  // Default left boundary
+        maxHeight: 6,  // Maximum height for obstacles
+        minHeight: -5,  // Minimum height for obstacles
     },
     data: {
-        numObstacles: ecs.f32,  // number of obstacles that are children of the entity
-        gameActive: ecs.boolean,  // Flag for whether the game is in the active state
+        numObstacles: ecs.f32,  // Number of obstacles that are children of the entity
+        gameActive: ecs.boolean,  // Flag indicating if the game is active
     },
-    stateMachine: ({world, eid, schemaAttribute, dataAttribute}) => {
-        const {maxHeight, minHeight} = schemaAttribute.get(eid)
-        ecs.defineState('inGame')  // creating the inGame state
-            // listening for restart on world.events.globalId to transition to moving state
-            .onEvent('gameOver', 'finishGame', {target: world.events.globalId})
+    stateMachine: ({ world, eid, schemaAttribute, dataAttribute }) => {
+        const { maxHeight, minHeight } = schemaAttribute.get(eid)
+
+        ecs.defineState('start').initial()  // Initial state
+            .onEvent('startGame', 'inGame', { target: world.events.globalId })
             .onExit(() => {
-                dataAttribute.cursor(eid).gameActive = false
+                dataAttribute.cursor(eid).gameActive = true  // Set game as active
             })
-        ecs.defineState('start').initial()  // creating the initial state
-            // listening for gameOver on world.events.globalId to transition to paused state
-            .onEvent('startGame', 'inGame', {target: world.events.globalId})
+
+        ecs.defineState('inGame')  // In-game state where obstacles are active
+            .onEvent('gameOver', 'finishGame', { target: world.events.globalId })
             .onExit(() => {
-                dataAttribute.cursor(eid).gameActive = true
+                dataAttribute.cursor(eid).gameActive = false  // Stop obstacles on game over
             })
-        ecs.defineState('finishGame')  // creating the finish state
-            // listening for gameOver on world.events.globalId to transition to paused state
-            .onEvent('restart', 'start', {target: world.events.globalId})
+
+        ecs.defineState('finishGame')  // Finish state to handle restart
+            .onEvent('restart', 'start', { target: world.events.globalId })
             .onExit(() => {
-                const offset = schemaAttribute.cursor(eid).leftBound /
-                    dataAttribute.cursor(eid).numObstacles
+                // Reposition obstacles when restarting the game
+                const offset = schemaAttribute.cursor(eid).leftBound / dataAttribute.cursor(eid).numObstacles
                 let yPosition
                 let index = 0
-                for (const element of world.getChildren(eid)) {
-                    const xPosition = index * offset  // Evenly space out each obstacle position
-                    // Randomize the y within the upper and lower bounds
+                for (const obstacle of world.getChildren(eid)) {
+                    const xPosition = index * offset  // Evenly space out each obstacle
+                    // Randomize the y position within the upper and lower bounds
                     yPosition = Math.floor(Math.random() * (maxHeight - minHeight) + minHeight)
-                    world.setPosition(element, -xPosition, yPosition, 0)  // Set its final position
+                    world.setPosition(obstacle, -xPosition, yPosition, 0)  // Set final position for each obstacle
                     index++
                 }
             })
     },
     add: (world, component) => {
-        component.dataAttribute.cursor(component.eid).gameActive = false
-        // Initialize Data
-        component.dataAttribute.cursor(component.eid).numObstacles = 0
-        // count the children
+        component.dataAttribute.cursor(component.eid).gameActive = false  // Initialize game as inactive
+        component.dataAttribute.cursor(component.eid).numObstacles = 0  // Initialize obstacle count
+        // Count the number of child entities to determine the number of obstacles
         for (const eid of world.getChildren(component.eid)) {
             component.dataAttribute.cursor(component.eid).numObstacles += 1
         }
     },
     tick: (world, component) => {
-        // Division by 1000 to change to seconds. i.e. Move speed 5 * delta = move 5 units in 1 second
         const moveDistance = (component.schema.obstacleMoveSpeed * world.time.delta) / 1000
+        const { gameActive } = component.dataAttribute.cursor(component.eid)
 
-        if (component.dataAttribute.cursor(component.eid).gameActive) {
-            for (const element of world.getChildren(component.eid)) {
-                const elementStartingPosition = ecs.Position.get(world, element)  // Get current position
-                let newX = elementStartingPosition.x - moveDistance
-                let yPosition = elementStartingPosition.y
-                const zPosition = elementStartingPosition.z
-                // Get the new x position along with the current y and z positions
-                if (newX < component.schemaAttribute.cursor(component.eid).leftBound) {
-                    // Reset position to the back and set a random y position in the upper and lower bounds
+        if (gameActive) {
+            for (const obstacle of world.getChildren(component.eid)) {
+                const obstaclePosition = ecs.Position.get(world, obstacle)  // Get current position
+                let newX = obstaclePosition.x - moveDistance
+                let yPosition = obstaclePosition.y
+                const zPosition = obstaclePosition.z
+
+                // If the obstacle crosses the left boundary, reset position and randomize height
+                if (newX < component.schema.leftBound) {
                     yPosition = Math.floor(Math.random() * (component.schema.maxHeight -
                         component.schema.minHeight) + component.schema.minHeight)
-                    newX -= component.schemaAttribute.cursor(component.eid).leftBound
+                    newX += component.schema.resetOffset
                 }
-                // Set its final position for this frame
-                world.setPosition(element, newX, yPosition, zPosition)
+                // Update position for the current frame
+                world.setPosition(obstacle, newX, yPosition, zPosition)
             }
         }
     },
