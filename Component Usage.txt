@@ -1,0 +1,88 @@
+Summary of Component Usage
+GameManager.js
+
+Role:
+Central control of game logic, such as handling the game state (startGame, inGame, afterGame), level progression, scoring, and interacting with the scoreboard UI.
+Calls functions like updateScoreboard() to update the scoreboard based on game events.
+Where it's Used:
+Attached to the GameManager entity. This is the key component that keeps track of levels, correct item drops, and initiates progression or game-over states.
+GroundController.js
+
+Role:
+Controls the ground plane or background movement, providing a continuous moving environment that creates the illusion of flying over terrain.
+Manages resetting of the ground position to give a seamless experience.
+Where it's Used:
+Attached to the Background entity. This controls the looping or movement of the ground.
+CharacterController.js (Modified for Santa's Sleigh)
+
+Role:
+Controls the Santa’s sleigh, ensuring it remains in a stable position.
+Handles height adjustment as the player progresses through levels.
+Originally designed for jumping in a previous game, it has been adapted for Santa's sleigh, focusing on vertical movement and stability.
+Where it's Used:
+Attached to the SantaSleigh entity to control movement and elevation.
+GameOverCollider.js
+
+Role:
+Handles game-over logic when the sleigh or dropped items collide incorrectly with obstacles or miss a correct house.
+This ensures that the game is restarted when an incorrect action is taken.
+Where it's Used:
+Attached to the SantaSleigh entity and dropped items as a component that listens for collisions and decides whether the game should end.
+ObstacleController.js
+
+Role:
+Manages non-target obstacles like blue, yellow, and purple houses.
+Randomizes the obstacles within the scene, adding difficulty by creating distractions.
+Ensures that obstacles move smoothly within the scene and reset as needed.
+Where it's Used:
+Attached to the ObstacleContainer entity and any additional obstacle entities.
+Each obstacle (e.g., blue house, yellow house) uses this component to set its behavior.
+FloorManager.js
+
+Role:
+Manages the ground entities, which include elements like the lower terrain that interact visually with the moving sleigh.
+Makes sure that different parts of the ground loop seamlessly if the player moves upward to new levels.
+Where it's Used:
+Attached to ground-related entities within the Background to manage interaction across levels.
+AudioController.js
+
+Role:
+Controls all audio interactions in the game, such as:
+Drop sound when coal or gifts are dropped.
+Correct and incorrect drop sounds.
+Level up and game-over sounds.
+Makes the gameplay more immersive and gives audio feedback for each action.
+Where it's Used:
+Attached to a centralized AudioController entity. It can be called from anywhere in the game by referencing PlayAudio(world, eid, 'soundType').
+BackgroundController.js
+
+Role:
+Manages additional background elements such as moving clouds, stars, or other distant visual effects.
+Provides atmospheric depth and gives the illusion that the sleigh is flying in a moving environment.
+Where it's Used:
+Attached to Background visual elements that should be animated or move consistently with the sleigh's progression.
+ScoreboardUI (New)
+
+Role:
+Displays game information such as the current level, the number of target houses, and the number of correct drops.
+Responsive for both mobile and desktop views.
+Is updated by calling the JavaScript function updateScoreboard(level, redRoofCount, greenRoofCount, correctDrops) from gameManager.js.
+Where it's Used:
+It's an HTML overlay element that is positioned in the game UI and is linked to the GameManager entity via JavaScript.
+Summary: Which Components to Use
+You are using all of the rewritten components (GameManager.js, GroundController.js, CharacterController.js, GameOverCollider.js, ObstacleController.js, FloorManager.js, AudioController.js, BackgroundController.js, and the new ScoreboardUI) to fully implement the updated game logic for Santa's Sleigh Mate.
+Each component has a specific role that contributes to the gameplay, with some controlling entities directly (CharacterController, ObstacleController, GroundController), while others (like GameOverCollider and AudioController) handle specific game interactions or provide feedback.
+How the Components Work Together
+Game Flow:
+The GameManager.js manages the overall game state, including transitions between levels and updating the scoreboard.
+Santa’s sleigh is controlled by CharacterController.js, which handles its height and stability, while GameOverCollider.js handles collision detection.
+Ground and obstacles are managed by GroundController.js, FloorManager.js, and ObstacleController.js to ensure a dynamic, constantly changing environment.
+Player Interaction:
+Players interact with the game using Coal and Gift buttons.
+The interaction triggers dropping mechanisms (DropController within CharacterController.js), and the dropped items are handled by dropped item entities with colliders.
+Audio and Visual Feedback:
+The AudioController.js component plays relevant sounds during game events.
+The ScoreboardUI displays current stats to provide the player with visual feedback about their progress.
+Final Thoughts
+All components play a vital role in ensuring the game is well-rounded, from controlling the sleigh to handling user input, level progression, visual elements, audio cues, and game-over events.
+With this setup, the game maintains an organized flow of entities and components, ensuring that everything from user actions to environmental interactions is well-coordinated and immersive.

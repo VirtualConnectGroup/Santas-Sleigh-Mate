@@ -2,11 +2,11 @@
 import * as ecs from '@8thwall/ecs'  // Access the ecs library
 
 // Ground Controller Component
-// Handles the movement of the houses that move along the ground in Santa's Sleigh Mate
+// Handles the movement of the ground entities (houses) in a loop
 ecs.registerComponent({
     name: 'groundController',
     schema: {
-        groundMoveSpeed: ecs.f32,  // Movement speed of the ground (houses) as a 32-bit float
+        groundMoveSpeed: ecs.f32,  // Movement speed of the ground (houses) as a variable float
         leftBound: ecs.f32,  // Left boundary where houses reset position
         resetOffset: ecs.f32,  // Offset distance to reset houses to the right after reaching the leftBound
     },
@@ -17,8 +17,12 @@ ecs.registerComponent({
     },
     data: {
         gameActive: ecs.boolean,  // Flag indicating if the game is active
+        numberOfEntities: ecs.i32,  // Number of ground entities
     },
     stateMachine: ({ world, eid, schemaAttribute, dataAttribute }) => {
+        const { groundMoveSpeed } = schemaAttribute.get(eid)
+        dataAttribute.set(eid, 'numberOfEntities', 5)  // Set the number of ground entities
+
         // Define 'paused' state which stops house movement
         ecs.defineState('paused')
             .onEvent('restart', 'moving', { target: world.events.globalId })  // Restart game to moving state
@@ -40,22 +44,23 @@ ecs.registerComponent({
 
     tick: (world, component) => {
         const moveDistance = (component.schema.groundMoveSpeed * world.time.delta) / 1000
-        const { gameActive } = component.dataAttribute.cursor(component.eid)
+        const { gameActive, numberOfEntities } = component.dataAttribute.cursor(component.eid)
 
-        // If the game is active, move each house element in the container
+        // If the game is active, move each ground entity in the container
         if (gameActive) {
-            for (const house of world.getChildren(component.eid)) {
-                const housePosition = ecs.Position.get(world, house)
-                let newX = housePosition.x - moveDistance
-                const { y, z } = housePosition  // Retain y and z positions
+            for (let i = 0; i < numberOfEntities; i++) {
+                const groundEntity = world.getChildren(component.eid)[i]
+                const groundPosition = ecs.Position.get(world, groundEntity)
+                let newX = groundPosition.x - moveDistance
+                const { y, z } = groundPosition  // Retain y and z positions
 
-                // Reset the house position if it crosses the left boundary
+                // Reset the ground position if it crosses the left boundary
                 if (newX < component.schema.leftBound) {
-                    newX += component.schema.resetOffset  // Move house back to right side
+                    newX += component.schema.resetOffset  // Move ground back to right side
                 }
 
-                // Update the house's position
-                world.setPosition(house, newX, y, z)
+                // Update the ground entity's position
+                world.setPosition(groundEntity, newX, y, z)
             }
         }
     },
